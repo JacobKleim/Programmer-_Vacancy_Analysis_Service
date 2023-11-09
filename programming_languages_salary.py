@@ -43,12 +43,13 @@ def predict_rub_salary_for_superjob(vacancy):
 
 
 def get_headhunter_vacancy_statistics():
-    statistics_by_languages_hh = {}
+    hh_languages_statistics = {}
     city = 1
     period = 30
+    url = 'https://api.hh.ru/vacancies'
 
     for language in languages:
-        average_salary_for_vacancies = []
+        vacancies_average_salary = []
         page = 0
         pages_number = 50
         all_pages = []
@@ -59,7 +60,6 @@ def get_headhunter_vacancy_statistics():
                           'area': city,
                           'period': period,
                           'page': page}
-                url = 'https://api.hh.ru/vacancies'
                 page_response = requests.get(url, params=params)
                 page_response.raise_for_status()
                 page_content = json.loads(page_response.text)
@@ -80,32 +80,33 @@ def get_headhunter_vacancy_statistics():
         for item in all_vacansies:
             salary = item['salary']
             if salary is not None:
-                average_salary_for_vacancy = predict_rub_salary_for_headhunter(
+                vacancy_average_salary = predict_rub_salary_for_headhunter(
                     item)
-                if average_salary_for_vacancy is not None:
-                    average_salary_for_vacancies.append(
-                        average_salary_for_vacancy)
+                if vacancy_average_salary is not None:
+                    vacancies_average_salary.append(
+                        vacancy_average_salary)
 
-        vacancies_processed_number = len(average_salary_for_vacancies)
+        vacancies_processed_number = len(vacancies_average_salary)
         language_statistics['vacancies_processed'] = vacancies_processed_number
 
         if vacancies_processed_number > 0:
             language_statistics["average_salary"] = int(sum(
-                average_salary_for_vacancies) / vacancies_processed_number)
+                vacancies_average_salary) / vacancies_processed_number)
         else:
             language_statistics["average_salary"] = None
 
-        statistics_by_languages_hh[f"{language}"] = language_statistics
-    return statistics_by_languages_hh
+        hh_languages_statistics[f"{language}"] = language_statistics
+    return hh_languages_statistics
 
 
 def get_superjob_vacancy_statistics(token):
-    languages_statistics_sj = {}
+    sj_languages_statistics = {}
     city = 4
     for language in languages:
-        average_salary_for_vacancies = []
+        vacancies_average_salary = []
         page = 0
         pages_number = 30
+        url = 'https://api.superjob.ru/2.0/vacancies/'
         all_pages = []
 
         while page < pages_number:
@@ -114,7 +115,6 @@ def get_superjob_vacancy_statistics(token):
                           'town': city,
                           'page': page}
                 header = {'X-Api-App-Id': token}
-                url = 'https://api.superjob.ru/2.0/vacancies/'
                 page_response = requests.get(url, params=params,
                                              headers=header)
                 page_content = json.loads(page_response.text)
@@ -135,24 +135,22 @@ def get_superjob_vacancy_statistics(token):
             for items in page['objects']:
                 all_vacansies.append(items)
 
-        average_salary_for_vacancies = []
-
         for vacancy in all_vacansies:
-            average_salary_for_vacancy = predict_rub_salary_for_superjob(
+            vacancy_average_salary = predict_rub_salary_for_superjob(
                 vacancy)
-            if average_salary_for_vacancy is not None:
-                average_salary_for_vacancies.append(average_salary_for_vacancy)
+            if vacancy_average_salary is not None:
+                vacancies_average_salary.append(vacancy_average_salary)
 
-        vacancies_processed_number = len(average_salary_for_vacancies)
+        vacancies_processed_number = len(vacancies_average_salary)
         language_statistics['vacancies_processed'] = vacancies_processed_number
         if vacancies_processed_number > 0:
             language_statistics['average_salary'] = int(sum(
-                average_salary_for_vacancies) / vacancies_processed_number)
+                vacancies_average_salary) / vacancies_processed_number)
         else:
             language_statistics['average_salary'] = None
-        languages_statistics_sj[f"{language}"] = language_statistics
+        sj_languages_statistics[f"{language}"] = language_statistics
 
-    return languages_statistics_sj
+    return sj_languages_statistics
 
 
 def output_table(language_statistics):

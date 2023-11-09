@@ -42,5 +42,5 @@
 5. Start the project:
    
    ```
-   programming_languages_salary.py
+   python programming_languages_salary.py
    ```
