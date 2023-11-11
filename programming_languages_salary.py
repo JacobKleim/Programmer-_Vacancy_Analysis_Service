@@ -8,37 +8,38 @@ from terminaltables import AsciiTable
 LANGUAGES = ['python', 'javascript', 'java', 'ruby', 'php', 'c++', 'c#', 'c']
 
 
-def predict_rub_salary_for_headhunter(item):
-    salary = item['salary']
-    if salary['currency'] == 'RUR':
-        if salary['to'] is None:
-            average_value = salary['from'] * 1.2
-        elif salary['from'] is None:
-            average_value = salary['to'] * 0.8
-        else:
-            average_value = (salary['from'] + salary['to']) / 2
+def get_average_salary(to_value, from_value):
+
+    if to_value == (0 or None) and from_value != (0 or None):
+        average_value = from_value * 1.2
+    elif from_value == (0 or None) and to_value != (0 or None):
+        average_value = to_value * 0.8
+    elif from_value == (0 or None) and to_value == (0 or None):
+        return None
     else:
+        average_value = (from_value + to_value) / 2
+    return int(average_value)
+
+
+def predict_rub_salary_for_headhunter(vacancy):
+    salary = vacancy['salary']
+    to_value = salary['to']
+    from_value = salary['from']
+
+    if salary['currency'] != 'RUR':
         return None
 
-    return int(average_value)
+    return get_average_salary(to_value, from_value)
 
 
 def predict_rub_salary_for_superjob(vacancy):
+    to_value = vacancy['payment_to']
+    from_value = vacancy['payment_from']
 
-    if vacancy['currency'] == 'rub':
-        if vacancy['payment_to'] == 0 and vacancy['payment_from'] != 0:
-            average_value = vacancy['payment_from'] * 1.2
-        elif vacancy['payment_from'] == 0 and vacancy['payment_to'] != 0:
-            average_value = vacancy['payment_to'] * 0.8
-        elif vacancy['payment_from'] == 0 and vacancy['payment_to'] == 0:
-            return None
-        else:
-            average_value = (
-                vacancy['payment_from'] + vacancy['payment_to']) / 2
-    else:
+    if vacancy['currency'] != 'rub':
         return None
 
-    return int(average_value)
+    return get_average_salary(to_value, from_value)
 
 
 def get_headhunter_vacancy_statistics():
@@ -63,7 +64,7 @@ def get_headhunter_vacancy_statistics():
                 page_response.raise_for_status()
                 page_content = page_response.json()
                 total_pages = page_content['pages']
-                pages_number = total_pages
+                pages_number = 1
                 all_pages.append(page_content)
                 if not page_content['items']:
                     break
@@ -72,8 +73,7 @@ def get_headhunter_vacancy_statistics():
                 print(e)
 
         all_vacansies = []
-        language_statistics = {}
-        language_statistics['vacancies_found'] = None
+        language_statistics = {'vacancies_found': None}
 
         for page in all_pages:
             response_found = page['found']
@@ -81,12 +81,12 @@ def get_headhunter_vacancy_statistics():
             for item in page['items']:
                 all_vacansies.append(item)
 
-        for item in all_vacansies:
-            salary = item['salary']
-            if salary is not None:
+        for vacancy in all_vacansies:
+            salary = vacancy['salary']
+            if salary:
                 vacancy_average_salary = predict_rub_salary_for_headhunter(
-                    item)
-                if vacancy_average_salary is not None:
+                    vacancy)
+                if vacancy_average_salary:
                     vacancies_average_salary.append(
                         vacancy_average_salary)
 
@@ -133,8 +133,7 @@ def get_superjob_vacancy_statistics(token):
                 print(e)
 
         all_vacansies = []
-        language_statistics = {}
-        language_statistics['vacancies_found'] = None
+        language_statistics = {'vacancies_found': None}
 
         for page in all_pages:
             response_found = page['total']
@@ -147,7 +146,7 @@ def get_superjob_vacancy_statistics(token):
         for vacancy in all_vacansies:
             vacancy_average_salary = predict_rub_salary_for_superjob(
                 vacancy)
-            if vacancy_average_salary is not None:
+            if vacancy_average_salary:
                 vacancies_average_salary.append(vacancy_average_salary)
 
         vacancies_processed_number = len(vacancies_average_salary)
@@ -172,7 +171,7 @@ def output_table(language_statistics):
 
     for language in language_statistics:
         language_info = language_statistics[f'{language}']
-        if language_info['vacancies_found'] is not None:
+        if language_info['vacancies_found']:
             vacancies_found = language_info['vacancies_found']
             vacancies_processed = language_info['vacancies_processed']
             average_salary = language_info['average_salary']
