@@ -42,123 +42,118 @@ def predict_rub_salary_for_superjob(vacancy):
     return get_average_salary(to_value, from_value)
 
 
-def get_headhunter_vacancy_statistics():
-    hh_languages_statistics = {}
+def get_headhunter_vacancy_statistics(language, hh_languages_statistics):
     city = 1
     period = 30
     url = 'https://api.hh.ru/vacancies'
+    vacancies_average_salaries = []
+    page = 0
+    pages_number = 1
+    all_pages = []
 
-    for language in LANGUAGES:
-        vacancies_average_salary = []
-        page = 0
-        pages_number = 1
-        all_pages = []
+    while page < pages_number:
+        try:
+            params = {'text': f'программист {language}',
+                      'area': city,
+                      'period': period,
+                      'page': page}
+            page_response = requests.get(url, params=params)
+            page_response.raise_for_status()
+            page_content = page_response.json()
+            total_pages = page_content['pages']
+            pages_number = total_pages
 
-        while page < pages_number:
-            try:
-                params = {'text': f'программист {language}',
-                          'area': city,
-                          'period': period,
-                          'page': page}
-                page_response = requests.get(url, params=params)
-                page_response.raise_for_status()
-                page_content = page_response.json()
-                total_pages = page_content['pages']
-                pages_number = total_pages
-                all_pages.append(page_content)
-                if not page_content['items']:
-                    break
-                page += 1
-            except requests.exceptions.HTTPError as e:
-                print(e)
+            if not page_content['items']:
+                break
 
-        all_vacansies = []
-        language_statistics = {'vacancies_found': None}
+            all_pages.append(page_content)
+            page += 1
+        except requests.exceptions.HTTPError as e:
+            print(e)
 
-        for page in all_pages:
-            response_found = page['found']
-            language_statistics['vacancies_found'] = response_found
-            for item in page['items']:
-                all_vacansies.append(item)
+    all_vacansies = []
+    language_statistics = {'vacancies_found': None}
 
-        for vacancy in all_vacansies:
-            salary = vacancy['salary']
-            if salary:
-                vacancy_average_salary = predict_rub_salary_for_headhunter(
-                    vacancy)
-                if vacancy_average_salary:
-                    vacancies_average_salary.append(
-                        vacancy_average_salary)
+    for page in all_pages:
+        response_found = page['found']
+        language_statistics['vacancies_found'] = response_found
+        for item in page['items']:
+            all_vacansies.append(item)
 
-        vacancies_processed_number = len(vacancies_average_salary)
-        language_statistics['vacancies_processed'] = vacancies_processed_number
-
-        if vacancies_processed_number > 0:
-            language_statistics["average_salary"] = int(sum(
-                vacancies_average_salary) / vacancies_processed_number)
-
-        hh_languages_statistics[f"{language}"] = language_statistics
-    return hh_languages_statistics
-
-
-def get_superjob_vacancy_statistics(token):
-    sj_languages_statistics = {}
-    city = 4
-    for language in LANGUAGES:
-        vacancies_average_salary = []
-        page = 0
-        url = 'https://api.superjob.ru/2.0/vacancies/'
-        all_pages = []
-
-        while True:
-            try:
-                params = {'keyword': f'Программист {language}',
-                          'town': city,
-                          'page': page}
-                header = {'X-Api-App-Id': token}
-                page_response = requests.get(url, params=params,
-                                             headers=header)
-                page_content = page_response.json()
-                page_response.raise_for_status()
-
-                if 'objects' not in page_content:
-                    break  # Прерываем цикл, если данных нет
-
-                all_pages.append(page_content)
-
-                if not page_content['more']:
-                    break
-                page += 1
-            except requests.exceptions.HTTPError as e:
-                print(e)
-
-        all_vacansies = []
-        language_statistics = {'vacancies_found': None}
-
-        for page in all_pages:
-            response_found = page['total']
-            if response_found != 0:
-                language_statistics['vacancies_found'] = response_found
-
-            for item in page['objects']:
-                all_vacansies.append(item)
-
-        for vacancy in all_vacansies:
-            vacancy_average_salary = predict_rub_salary_for_superjob(
+    for vacancy in all_vacansies:
+        salary = vacancy['salary']
+        if salary:
+            vacancy_average_salary = predict_rub_salary_for_headhunter(
                 vacancy)
             if vacancy_average_salary:
-                vacancies_average_salary.append(vacancy_average_salary)
+                vacancies_average_salaries.append(
+                    vacancy_average_salary)
 
-        vacancies_processed_number = len(vacancies_average_salary)
+    vacancies_processed_number = len(vacancies_average_salaries)
+    language_statistics['vacancies_processed'] = vacancies_processed_number
 
-        language_statistics['vacancies_processed'] = vacancies_processed_number
-        if vacancies_processed_number > 0:
-            language_statistics['average_salary'] = int(sum(
-                vacancies_average_salary) / vacancies_processed_number)
+    if vacancies_processed_number:
+        language_statistics["average_salary"] = int(sum(
+            vacancies_average_salaries) / vacancies_processed_number)
 
-        sj_languages_statistics[f"{language}"] = language_statistics
+    hh_languages_statistics[f"{language}"] = language_statistics
 
-    return sj_languages_statistics
+
+def get_superjob_vacancy_statistics(token, language, sj_languages_statistics):
+    city = 4
+    vacancies_average_salaries = []
+    page = 0
+    url = 'https://api.superjob.ru/2.0/vacancies/'
+    all_pages = []
+
+    while True:
+        try:
+            params = {'keyword': f'Программист {language}',
+                      'town': city,
+                      'page': page}
+            header = {'X-Api-App-Id': token}
+            page_response = requests.get(url, params=params,
+                                         headers=header)
+            page_content = page_response.json()
+            page_response.raise_for_status()
+
+            if 'objects' not in page_content:
+                break
+
+            all_pages.append(page_content)
+
+            if not page_content['more']:
+                break
+
+            page += 1
+        except requests.exceptions.HTTPError as e:
+            print(e)
+
+    all_vacansies = []
+    language_statistics = {'vacancies_found': None}
+
+    for page in all_pages:
+        response_found = page['total']
+        if response_found:
+            language_statistics['vacancies_found'] = response_found
+
+        for item in page['objects']:
+            all_vacansies.append(item)
+
+    for vacancy in all_vacansies:
+        vacancy_average_salary = predict_rub_salary_for_superjob(
+            vacancy)
+        if vacancy_average_salary:
+            vacancies_average_salaries.append(vacancy_average_salary)
+
+    vacancies_processed_number = len(vacancies_average_salaries)
+    language_statistics['vacancies_processed'] = vacancies_processed_number
+
+    if vacancies_processed_number:
+        language_statistics['average_salary'] = int(sum(
+            vacancies_average_salaries) / vacancies_processed_number)
+
+    sj_languages_statistics[f"{language}"] = language_statistics
 
 
 def output_table(language_statistics):
@@ -197,14 +192,21 @@ def main():
 
     sj_token = os.getenv('SJ_TOKEN')
 
-    hh_vacancy_statistics = get_headhunter_vacancy_statistics()
-    hh_formatted_statistics = output_table(hh_vacancy_statistics)
+    hh_languages_statistics = {}
+    sj_languages_statistics = {}
+
+    for language in LANGUAGES:
+        get_headhunter_vacancy_statistics(language, hh_languages_statistics)
+        get_superjob_vacancy_statistics(sj_token,
+                                        language,
+                                        sj_languages_statistics)
+
+    hh_formatted_statistics = output_table(hh_languages_statistics)
     table_hh = AsciiTable(hh_formatted_statistics, 'HeadHunter Moscow')
     table_hh.justify_columns[2] = 'right'
     print(table_hh.table)
 
-    sj_vacancy_statistics = get_superjob_vacancy_statistics(sj_token)
-    sj_formatted_statistics = output_table(sj_vacancy_statistics)
+    sj_formatted_statistics = output_table(sj_languages_statistics)
     table_sj = AsciiTable(sj_formatted_statistics, 'SuperJob Moscow')
     table_sj.justify_columns[2] = 'right'
     print(table_sj.table)
