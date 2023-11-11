@@ -64,7 +64,7 @@ def get_headhunter_vacancy_statistics():
                 page_response.raise_for_status()
                 page_content = page_response.json()
                 total_pages = page_content['pages']
-                pages_number = 1
+                pages_number = total_pages
                 all_pages.append(page_content)
                 if not page_content['items']:
                     break
