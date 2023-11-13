@@ -42,7 +42,7 @@ def predict_rub_salary_for_superjob(vacancy):
     return get_average_salary(to_value, from_value)
 
 
-def get_headhunter_vacancy_statistics(language, hh_languages_statistics):
+def get_headhunter_vacancy_statistics(language):
     city = 1
     period = 30
     url = 'https://api.hh.ru/vacancies'
@@ -99,7 +99,7 @@ def get_headhunter_vacancy_statistics(language, hh_languages_statistics):
     return language_statistics
 
 
-def get_superjob_vacancy_statistics(token, language, sj_languages_statistics):
+def get_superjob_vacancy_statistics(token, language):
     city = 4
     vacancies_average_salaries = []
     page = 0
@@ -194,13 +194,11 @@ def main():
 
     for language in LANGUAGES:
         hh_languages_statistics[language] = get_headhunter_vacancy_statistics(
-            language,
-            hh_languages_statistics)
+            language)
 
         sj_languages_statistics[language] = get_superjob_vacancy_statistics(
             sj_token,
-            language,
-            sj_languages_statistics)
+            language)
 
     hh_formatted_statistics = output_table(hh_languages_statistics)
     table_hh = AsciiTable(hh_formatted_statistics, 'HeadHunter Moscow')
