@@ -10,11 +10,11 @@ LANGUAGES = ['python', 'javascript', 'java', 'ruby', 'php', 'c++', 'c#', 'c']
 
 def get_average_salary(to_value, from_value):
 
-    if to_value == (0 or None) and from_value != (0 or None):
+    if not to_value and from_value:
         average_value = from_value * 1.2
-    elif from_value == (0 or None) and to_value != (0 or None):
+    elif not from_value and to_value:
         average_value = to_value * 0.8
-    elif from_value == (0 or None) and to_value == (0 or None):
+    elif not from_value and not to_value:
         return None
     else:
         average_value = (from_value + to_value) / 2
@@ -71,23 +71,23 @@ def get_headhunter_vacancy_statistics(language, hh_languages_statistics):
         except requests.exceptions.HTTPError as e:
             print(e)
 
-    all_vacansies = []
-    language_statistics = {'vacancies_found': None}
+    all_vacancies = []
 
     for page in all_pages:
         response_found = page['found']
-        language_statistics['vacancies_found'] = response_found
-        for item in page['items']:
-            all_vacansies.append(item)
+        all_vacancies.extend(page['items'])
 
-    for vacancy in all_vacansies:
+    language_statistics = {'vacancies_found': response_found}
+
+    for vacancy in all_vacancies:
         salary = vacancy['salary']
-        if salary:
-            vacancy_average_salary = predict_rub_salary_for_headhunter(
-                vacancy)
-            if vacancy_average_salary:
-                vacancies_average_salaries.append(
-                    vacancy_average_salary)
+        if not salary:
+            continue
+        vacancy_average_salary = predict_rub_salary_for_headhunter(
+            vacancy)
+        if vacancy_average_salary:
+            vacancies_average_salaries.append(
+                vacancy_average_salary)
 
     vacancies_processed_number = len(vacancies_average_salaries)
     language_statistics['vacancies_processed'] = vacancies_processed_number
@@ -96,7 +96,7 @@ def get_headhunter_vacancy_statistics(language, hh_languages_statistics):
         language_statistics["average_salary"] = int(sum(
             vacancies_average_salaries) / vacancies_processed_number)
 
-    hh_languages_statistics[f"{language}"] = language_statistics
+    return language_statistics
 
 
 def get_superjob_vacancy_statistics(token, language, sj_languages_statistics):
@@ -129,18 +129,15 @@ def get_superjob_vacancy_statistics(token, language, sj_languages_statistics):
         except requests.exceptions.HTTPError as e:
             print(e)
 
-    all_vacansies = []
-    language_statistics = {'vacancies_found': None}
+    all_vacancies = []
 
     for page in all_pages:
         response_found = page['total']
-        if response_found:
-            language_statistics['vacancies_found'] = response_found
+        all_vacancies.extend(page['objects'])
 
-        for item in page['objects']:
-            all_vacansies.append(item)
+    language_statistics = {'vacancies_found': response_found}
 
-    for vacancy in all_vacansies:
+    for vacancy in all_vacancies:
         vacancy_average_salary = predict_rub_salary_for_superjob(
             vacancy)
         if vacancy_average_salary:
@@ -153,7 +150,7 @@ def get_superjob_vacancy_statistics(token, language, sj_languages_statistics):
         language_statistics['average_salary'] = int(sum(
             vacancies_average_salaries) / vacancies_processed_number)
 
-    sj_languages_statistics[f"{language}"] = language_statistics
+    return language_statistics
 
 
 def output_table(language_statistics):
@@ -165,7 +162,7 @@ def output_table(language_statistics):
     ]
 
     for language in language_statistics:
-        language_info = language_statistics[f'{language}']
+        language_info = language_statistics[language]
         if language_info['vacancies_found']:
             vacancies_found = language_info['vacancies_found']
             vacancies_processed = language_info['vacancies_processed']
@@ -176,10 +173,10 @@ def output_table(language_statistics):
             average_salary = 0
 
         info = [
-                f'{language}',
-                f'{vacancies_found}',
-                f'{vacancies_processed}',
-                f'{average_salary}'
+                language,
+                vacancies_found,
+                vacancies_processed,
+                average_salary
             ]
 
         table.append(info)
@@ -196,10 +193,14 @@ def main():
     sj_languages_statistics = {}
 
     for language in LANGUAGES:
-        get_headhunter_vacancy_statistics(language, hh_languages_statistics)
-        get_superjob_vacancy_statistics(sj_token,
-                                        language,
-                                        sj_languages_statistics)
+        hh_languages_statistics[language] = get_headhunter_vacancy_statistics(
+            language,
+            hh_languages_statistics)
+
+        sj_languages_statistics[language] = get_superjob_vacancy_statistics(
+            sj_token,
+            language,
+            sj_languages_statistics)
 
     hh_formatted_statistics = output_table(hh_languages_statistics)
     table_hh = AsciiTable(hh_formatted_statistics, 'HeadHunter Moscow')
