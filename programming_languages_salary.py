@@ -61,7 +61,7 @@ def get_headhunter_vacancy_statistics(language):
             page_response.raise_for_status()
             page_content = page_response.json()
             total_pages = page_content['pages']
-            pages_number = 1
+            pages_number = total_pages
 
             if not page_content['items']:
                 break
@@ -76,8 +76,6 @@ def get_headhunter_vacancy_statistics(language):
     for page in all_pages:
         response_found = page['found']
         all_vacancies.extend(page['items'])
-
-    # language_statistics = {'vacancies_found': response_found}
 
     for vacancy in all_vacancies:
         salary = vacancy['salary']
@@ -138,8 +136,6 @@ def get_superjob_vacancy_statistics(token, language):
         response_found = page['total']
         all_vacancies.extend(page['objects'])
 
-    # language_statistics = {'vacancies_found': response_found}
-
     for vacancy in all_vacancies:
         vacancy_average_salary = predict_rub_salary_for_superjob(
             vacancy)
@@ -149,7 +145,6 @@ def get_superjob_vacancy_statistics(token, language):
     vacancies_processed_number = len(vacancies_average_salaries)
     language_statistics = {'vacancies_found': response_found,
                            'vacancies_processed': vacancies_processed_number}
-    # language_statistics['vacancies_processed'] = vacancies_processed_number
 
     if vacancies_processed_number:
         language_statistics['average_salary'] = int(
