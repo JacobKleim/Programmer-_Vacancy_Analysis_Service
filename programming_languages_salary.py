@@ -61,7 +61,7 @@ def get_headhunter_vacancy_statistics(language):
             page_response.raise_for_status()
             page_content = page_response.json()
             total_pages = page_content['pages']
-            pages_number = total_pages
+            pages_number = 1
 
             if not page_content['items']:
                 break
@@ -77,7 +77,7 @@ def get_headhunter_vacancy_statistics(language):
         response_found = page['found']
         all_vacancies.extend(page['items'])
 
-    language_statistics = {'vacancies_found': response_found}
+    # language_statistics = {'vacancies_found': response_found}
 
     for vacancy in all_vacancies:
         salary = vacancy['salary']
@@ -90,11 +90,14 @@ def get_headhunter_vacancy_statistics(language):
                 vacancy_average_salary)
 
     vacancies_processed_number = len(vacancies_average_salaries)
-    language_statistics['vacancies_processed'] = vacancies_processed_number
+    language_statistics = {'vacancies_found': response_found,
+                           'vacancies_processed': vacancies_processed_number}
 
     if vacancies_processed_number:
-        language_statistics["average_salary"] = int(sum(
-            vacancies_average_salaries) / vacancies_processed_number)
+        language_statistics["average_salary"] = int(
+            sum(vacancies_average_salaries
+                ) / vacancies_processed_number
+        ) if vacancies_processed_number != 0 else 0
 
     return language_statistics
 
@@ -135,7 +138,7 @@ def get_superjob_vacancy_statistics(token, language):
         response_found = page['total']
         all_vacancies.extend(page['objects'])
 
-    language_statistics = {'vacancies_found': response_found}
+    # language_statistics = {'vacancies_found': response_found}
 
     for vacancy in all_vacancies:
         vacancy_average_salary = predict_rub_salary_for_superjob(
@@ -144,16 +147,19 @@ def get_superjob_vacancy_statistics(token, language):
             vacancies_average_salaries.append(vacancy_average_salary)
 
     vacancies_processed_number = len(vacancies_average_salaries)
-    language_statistics['vacancies_processed'] = vacancies_processed_number
+    language_statistics = {'vacancies_found': response_found,
+                           'vacancies_processed': vacancies_processed_number}
+    # language_statistics['vacancies_processed'] = vacancies_processed_number
 
     if vacancies_processed_number:
-        language_statistics['average_salary'] = int(sum(
-            vacancies_average_salaries) / vacancies_processed_number)
-
+        language_statistics['average_salary'] = int(
+            sum(vacancies_average_salaries
+                ) / vacancies_processed_number
+        ) if vacancies_processed_number != 0 else 0
     return language_statistics
 
 
-def output_table(language_statistics):
+def output_table(language_statistics, title):
     table = [
         ['Язык программирования',
          'Вакансий найдено',
@@ -162,26 +168,28 @@ def output_table(language_statistics):
     ]
 
     for language in language_statistics:
-        language_info = language_statistics[language]
-        if language_info['vacancies_found']:
-            vacancies_found = language_info['vacancies_found']
-            vacancies_processed = language_info['vacancies_processed']
-            average_salary = language_info['average_salary']
+        language_stats = language_statistics[language]
+        if language_stats['vacancies_found']:
+            vacancies_found = language_stats['vacancies_found']
+            vacancies_processed = language_stats['vacancies_processed']
+            average_salary = language_stats['average_salary']
         else:
             vacancies_found = 0
             vacancies_processed = 0
             average_salary = 0
 
-        info = [
+        formatted_statistics = [
                 language,
                 vacancies_found,
                 vacancies_processed,
                 average_salary
             ]
 
-        table.append(info)
+        table.append(formatted_statistics)
+    output_table = AsciiTable(table, title)
+    output_table.justify_columns[2] = 'right'
 
-    return table
+    return output_table
 
 
 def main():
@@ -200,14 +208,10 @@ def main():
             sj_token,
             language)
 
-    hh_formatted_statistics = output_table(hh_languages_statistics)
-    table_hh = AsciiTable(hh_formatted_statistics, 'HeadHunter Moscow')
-    table_hh.justify_columns[2] = 'right'
+    table_hh = output_table(hh_languages_statistics, 'HeadHunter Moscow')
     print(table_hh.table)
 
-    sj_formatted_statistics = output_table(sj_languages_statistics)
-    table_sj = AsciiTable(sj_formatted_statistics, 'SuperJob Moscow')
-    table_sj.justify_columns[2] = 'right'
+    table_sj = output_table(sj_languages_statistics, 'SuperJob Moscow')
     print(table_sj.table)
 
 
