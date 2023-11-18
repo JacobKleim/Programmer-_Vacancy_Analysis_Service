@@ -88,14 +88,14 @@ def get_headhunter_vacancy_statistics(language):
                 vacancy_average_salary)
 
     vacancies_processed_number = len(vacancies_average_salaries)
-    language_statistics = {'vacancies_found': response_found,
-                           'vacancies_processed': vacancies_processed_number}
 
-    if vacancies_processed_number:
-        language_statistics["average_salary"] = int(
-            sum(vacancies_average_salaries
-                ) / vacancies_processed_number
-        ) if vacancies_processed_number != 0 else 0
+    language_average_salary = int(sum(vacancies_average_salaries
+                                      ) / vacancies_processed_number
+                                  ) if vacancies_processed_number else 0
+
+    language_statistics = {'vacancies_found': response_found,
+                           'vacancies_processed': vacancies_processed_number,
+                           'average_salary': language_average_salary}
 
     return language_statistics
 
@@ -143,14 +143,15 @@ def get_superjob_vacancy_statistics(token, language):
             vacancies_average_salaries.append(vacancy_average_salary)
 
     vacancies_processed_number = len(vacancies_average_salaries)
-    language_statistics = {'vacancies_found': response_found,
-                           'vacancies_processed': vacancies_processed_number}
 
-    if vacancies_processed_number:
-        language_statistics['average_salary'] = int(
-            sum(vacancies_average_salaries
-                ) / vacancies_processed_number
-        ) if vacancies_processed_number != 0 else 0
+    language_average_salary = int(sum(vacancies_average_salaries
+                                      ) / vacancies_processed_number
+                                  ) if vacancies_processed_number else 0
+
+    language_statistics = {'vacancies_found': response_found,
+                           'vacancies_processed': vacancies_processed_number,
+                           'average_salary': language_average_salary}
+
     return language_statistics
 
 
